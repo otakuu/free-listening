@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Free Listening</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #181818;
+        color: #f0f0f0;
+        margin: 40px;
+    }
+    h1 {
+        color: #ffd700;
+    }
+    input[type="text"] {
+        width: 70%;
+        padding: 8px;
+        font-size: 1em;
+        border-radius: 4px;
+        border: 1px solid #444;
+        background: #222;
+        color: #fff;
+    }
+    button {
+        padding: 8px 16px;
+        font-size: 1em;
+        border-radius: 4px;
+        border: none;
+        background: #ffd700;
+        color: #222;
+        cursor: pointer;
+        margin-left: 8px;
+    }
+    button:hover {
+        background: #ffec80;
+    }
+    audio {
+        margin-top: 20px;
+        background: #222;
+        border-radius: 4px;
+    }
+</style>
+</head>
+<body>
+<h1>Free Listening</h1>
+<p>Free listening to articles. Works for Tagesanzeiger, NZZ and Spiegel.de.</p>
+<label for="article_url">Article URL:</label>
+<input type="text" id="article_url" size="80" autofocus placeholder="Paste article URL here">
+<button id="playBtn">Get & Play Audio</button>
+<br><br>
+<audio id="audioPlayer" controls style="width: 100%;"></audio>
+<script>
+    document.getElementById('playBtn').onclick = async function () {
+        const articleUrl = document.getElementById('article_url').value.trim();
+        let hostname = '';
+        try {
+            hostname = new URL(articleUrl).hostname;
+        } catch (e) {
+            alert('Invalid URL');
+            return;
+        }
+
+        if (hostname.endsWith('spiegel.de')) {
+            const uuidRegex = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
+            const match = articleUrl.match(uuidRegex);
+            if (match) {
+                const uuid = match[0];
+                const apiUrl = `https://omny.fm/api/orgs/5ac1e950-45c7-4eb7-87c0-aa0f018441b8/clips/externalId?value=${uuid}`;
+                try {
+                    const response = await fetch(apiUrl);
+                    const data = await response.json();
+                    if (data.AudioUrl) {
+                        playAudio(data.AudioUrl);
+                    } else {
+                        alert('No audio found for this article.');
+                    }
+                } catch (e) {
+                    alert('Failed to fetch audio: ' + e);
+                }
+            } else {
+                alert('No ArticleId (UUID) found in the URL.');
+            }
+        }
+
+        if (hostname.endsWith('tagesanzeiger.ch')) {
+            const apiUrl = 'https://bottalk.io/audio?code=d7a66ac220961e6aebc572e552d64e16&premium=true&json=true&res=' + encodeURIComponent(articleUrl);
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data.audio) {
+                    const mp3Url = `https://audio.bottalk.io/${data.audio}.mp3`;
+                    playAudio(mp3Url);
+                } else {
+                    alert('No audio found for this article.');
+                }
+            } catch (e) {
+                alert('Failed to fetch audio: ' + e);
+            }
+        }
+
+        if (hostname.endsWith('nzz.ch')) {
+            let NZZ_AMP_URL = "https://vamp-piano.nzz.ch/webview2/ld.";
+            const idRegex = /ld\.(\d+)/;
+            const match = articleUrl.match(idRegex);
+            if (match) {
+                const articleId = match[1];
+                const fullUrl = NZZ_AMP_URL + articleId;
+                const response = await fetch("https://corsproxy.io?url="+fullUrl);
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const scriptElement = doc.querySelector('script[data-hid="vamp-articleLoaded"]');
+                if (scriptElement) {
+                    const scriptContent = scriptElement.innerHTML;
+                    const audioUrlMatch = scriptContent.match(/"audioUrl":"(.*?)"/);
+                    const audioUrl = audioUrlMatch ? audioUrlMatch[1].replace(/\\u002F/g, '/') : null;
+                    if (audioUrl) {
+                        playAudio(audioUrl);
+                    } else {
+                        alert('No audio found for this article.');
+                    }
+                } else {
+                    alert('No audio script found in the article.');
+                }
+
+            }
+
+        }
+    };
+
+    function playAudio(url) {
+        const audioPlayer = document.getElementById('audioPlayer');
+        audioPlayer.src = url;
+        audioPlayer.play();
+    }
+</script>
+</body>
+</html>
