@@ -68,13 +68,8 @@
 </head>
 <body>
 <main>
-  <h1>NZZ-Artikel im Vamp-Webview öffnen</h1>
-  <p class="hint">Aka Paywall Bypass</p>
-  <div class="row">
-    <input id="url" type="text" inputmode="url" autocomplete="off" autofocus
-           placeholder="https://www.nzz.ch/…-ld.10034743" aria-label="NZZ-URL">
-    <button id="go" type="button">Öffnen</button>
-  </div>
+  <h1>NZZ-Artikel im Vamp-Webview öffnen (Bookmarklet)</h1>
+  <p class="hint">javascript:(()=>{const m=location.pathname.match(/(m?ld\.\d+)\/?$/);if(m&&location.host==='www.nzz.ch')window.open('https://vamp.nzz.ch/webview2/'+m[1],'_blank');})()</p>
   <div id="msg" role="status" aria-live="polite"></div>
 </main>
 
