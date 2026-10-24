@@ -101,7 +101,7 @@
       msg.className = "";
       const a = document.createElement("a");
       a.href = target;
-      a.target = "_blank";
+      a.target = "_self";
       a.rel = "noopener";
       a.textContent = target;
       msg.replaceChildren(a);
@@ -116,7 +116,7 @@
 
   function openTarget() {
     update();
-    if (target) window.open(target, "_blank", "noopener");
+    if (target) window.open(target, "_self", "noopener");
   }
 
   document.getElementById("go").addEventListener("click", openTarget);
