@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NZZ → Vamp Webview</title>
+<style>
+  :root {
+    --bg: #f2f2ee;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --muted: #5d5d5d;
+    --line: #c9c9c2;
+    --accent: #0b3d91;
+    --error: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a;
+      --surface: #202226;
+      --text: #ececec;
+      --muted: #9a9ca3;
+      --line: #3a3d44;
+      --accent: #8ab4ff;
+      --error: #ff8a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Georgia, "Times New Roman", serif;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+  }
+  main { width: 100%; max-width: 40rem; }
+  h1 { font-size: 1.6rem; font-weight: 600; margin: 0 0 .5rem; }
+  p.hint { margin: 0 0 1.5rem; color: var(--muted); line-height: 1.5; }
+  .row { display: flex; gap: .5rem; }
+  input {
+    flex: 1; min-width: 0;
+    font: inherit; font-size: 1rem;
+    padding: .8rem .9rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+  }
+  input:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  button {
+    font: inherit; font-weight: 600;
+    padding: .8rem 1.2rem;
+    border: 0; border-radius: 4px;
+    background: var(--accent);
+    color: var(--bg);
+    cursor: pointer;
+  }
+  #msg { min-height: 1.5rem; margin-top: .9rem; font-size: .95rem; }
+  #msg.err { color: var(--error); }
+  #msg a { color: var(--accent); word-break: break-all; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>NZZ-Artikel im Vamp-Webview öffnen</h1>
+  <p class="hint">Aka Paywall Bypass</p>
+  <div class="row">
+    <input id="url" type="text" inputmode="url" autocomplete="off" autofocus
+           placeholder="https://www.nzz.ch/…-ld.10034743" aria-label="NZZ-URL">
+    <button id="go" type="button">Öffnen</button>
+  </div>
+  <div id="msg" role="status" aria-live="polite"></div>
+</main>
+
+<script>
+  const BASE = "https://vamp.nzz.ch/webview2/";
+  const input = document.getElementById("url");
+  const msg = document.getElementById("msg");
+
+  // Matches the trailing "ld.<digits>" (or "mld.<digits>") id of an NZZ article path
+  function extractId(value) {
+    let path = value.trim();
+    try { path = new URL(path).pathname; } catch (e) { /* allow bare slugs/ids */ }
+    const m = path.match(/(m?ld\.\d+)\/?$/i);
+    return m ? m[1].toLowerCase() : null;
+  }
+
+  let target = null;
+
+  function update() {
+    const value = input.value.trim();
+    const id = extractId(value);
+    target = id ? BASE + id : null;
+    if (target) {
+      msg.className = "";
+      const a = document.createElement("a");
+      a.href = target;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = target;
+      msg.replaceChildren(a);
+    } else if (value) {
+      msg.className = "err";
+      msg.textContent = "Keine ID gefunden. Die URL muss auf z. B. «ld.10034743» enden.";
+    } else {
+      msg.className = "";
+      msg.textContent = "";
+    }
+  }
+
+  function openTarget() {
+    update();
+    if (target) window.open(target, "_blank", "noopener");
+  }
+
+  document.getElementById("go").addEventListener("click", openTarget);
+  input.addEventListener("input", update);
+  // Pasted text isn't in the field yet during the paste event
+  input.addEventListener("paste", () => setTimeout(update, 0));
+  input.addEventListener("keydown", e => { if (e.key === "Enter") openTarget(); });
+
+  // Prefill from ?url=https://www.nzz.ch/...
+  const param = new URLSearchParams(location.search).get("url");
+  if (param) { input.value = param; update(); }
+</script>
+</body>
+</html>
